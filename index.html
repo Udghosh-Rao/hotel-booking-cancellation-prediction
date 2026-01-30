@@ -1,0 +1,757 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Hotel Booking Cancellation — Results & Visuals</title>
+
+  <!-- Meta for social preview -->
+  <meta name="description" content="Machine learning project: Predict hotel booking cancellations. Dataset exploration, feature engineering, models, and visualizations.">
+  <meta name="author" content="Udghosh Rao">
+
+  <!-- Chart.js CDN for interactive charts -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+
+  <style>
+    /* --------------------------
+       Global
+       -------------------------- */
+    :root{
+      --bg: #071024;
+      --card: #0f1724;
+      --muted: #94a3b8;
+      --accent: #60a5fa;
+      --accent-2: #22c55e;
+      --glass: rgba(255,255,255,0.04);
+      --radius: 12px;
+      --max-width: 1200px;
+    }
+    html,body{
+      height:100%;
+      margin:0;
+      background:linear-gradient(180deg,var(--bg),#020213 120%);
+      font-family: "Inter", "Segoe UI", Roboto, Arial, sans-serif;
+      color: #e6eef8;
+      -webkit-font-smoothing:antialiased;
+      -moz-osx-font-smoothing:grayscale;
+    }
+    a{ color: var(--accent); text-decoration: none; }
+    a:hover{ text-decoration: underline; }
+
+    /* --------------------------
+       Layout
+       -------------------------- */
+    .wrap{
+      max-width: var(--max-width);
+      margin: 32px auto;
+      padding: 24px;
+    }
+
+    header{
+      display:flex;
+      gap:20px;
+      align-items:center;
+      margin-bottom:18px;
+    }
+    .logo{
+      width:86px;
+      height:86px;
+      border-radius:14px;
+      background:linear-gradient(135deg,#60a5fa,#7dd3fc);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-weight:800;
+      color:#001523;
+      font-size:20px;
+      box-shadow: 0 6px 30px rgba(8,12,30,0.8);
+      flex:0 0 86px;
+    }
+    header h1{
+      margin:0;
+      font-size:24px;
+      line-height:1.05;
+      letter-spacing:-0.2px;
+    }
+    header p{
+      margin:6px 0 0 0;
+      color:var(--muted);
+      font-size:13px;
+    }
+
+    /* --------------------------
+       Grid
+       -------------------------- */
+    .grid{
+      display:grid;
+      grid-template-columns: 1fr 360px;
+      gap:20px;
+      align-items:start;
+    }
+    @media (max-width:980px){
+      .grid{ grid-template-columns: 1fr; }
+    }
+
+    /* --------------------------
+       Card
+       -------------------------- */
+    .card{
+      background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+      border: 1px solid rgba(255,255,255,0.03);
+      padding:20px;
+      border-radius: var(--radius);
+      box-shadow: 0 10px 40px rgba(2,6,23,0.6);
+    }
+    .card h2{
+      margin:0 0 12px 0;
+      font-size:18px;
+    }
+    .muted { color: var(--muted); font-size:13px; }
+
+    /* --------------------------
+       Summary metrics
+       -------------------------- */
+    .metrics{
+      display:flex;
+      gap:12px;
+      flex-wrap:wrap;
+    }
+    .metric{
+      background: linear-gradient(90deg,#0ea5a1 0%, #60a5fa 100%);
+      color: #02121b;
+      min-width:140px;
+      padding:10px 12px;
+      border-radius:10px;
+      font-weight:700;
+      text-align:center;
+    }
+
+    /* --------------------------
+       Visual / charts area
+       -------------------------- */
+    .visuals{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap:12px;
+    }
+    @media (max-width:880px){
+      .visuals{ grid-template-columns: 1fr; }
+    }
+    .chart-wrap{ padding:8px; }
+
+    /* --------------------------
+       List, table, code area
+       -------------------------- */
+    ul.clean {
+      padding-left: 18px;
+      margin:0;
+    }
+    table{
+      width:100%;
+      border-collapse:collapse;
+      font-size:13px;
+    }
+    table thead th {
+      text-align:left;
+      padding:10px 8px;
+      color:var(--muted);
+      font-weight:600;
+      border-bottom:1px solid rgba(255,255,255,0.03);
+    }
+    table tbody td {
+      padding:8px;
+      border-bottom:1px dashed rgba(255,255,255,0.02);
+    }
+
+    /* --------------------------
+       Buttons and small UI
+       -------------------------- */
+    .btn{
+      display:inline-block;
+      background: linear-gradient(90deg,var(--accent),#7c3aed);
+      color:#02121b;
+      padding:8px 12px;
+      border-radius:8px;
+      font-weight:700;
+      border: none;
+      cursor:pointer;
+    }
+    .btn.secondary{
+      background:transparent;
+      border:1px solid rgba(255,255,255,0.06);
+      color:var(--muted);
+    }
+
+    /* --------------------------
+       Footer
+       -------------------------- */
+    footer{
+      margin-top:18px;
+      text-align:center;
+      color:var(--muted);
+      font-size:13px;
+    }
+
+    /* --------------------------
+       Annotations
+       -------------------------- */
+    .note{
+      background: rgba(255,255,255,0.02);
+      border-left: 3px solid rgba(96,165,250,0.12);
+      padding:8px 10px;
+      border-radius:6px;
+      color:var(--muted);
+      font-size:13px;
+    }
+
+    /* --------------------------
+       Small helpers
+       -------------------------- */
+    .flex { display:flex; gap:12px; align-items:center; }
+    .right { margin-left:auto; }
+    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, "Roboto Mono", monospace; font-size:13px; color:#cfe8ff; }
+    .kbd { background:#061224; padding:4px 8px; border-radius:6px; border:1px solid rgba(255,255,255,0.02); }
+
+  </style>
+</head>
+
+<body>
+  <div class="wrap">
+    <!-- Header -->
+    <header>
+      <div class="logo">HB</div>
+      <div>
+        <h1>Hotel Booking Cancellation Prediction</h1>
+        <p>Project summary, metrics, and interactive visuals — built from a Kaggle dataset. Author: <strong>Udghosh Rao</strong></p>
+      </div>
+      <div class="right muted" style="margin-left:auto;">
+        <div>Repo: <a href="https://github.com/YOUR_USERNAME/hotel-booking-cancellation-prediction" target="_blank">github.com/YOUR_USERNAME/hotel-booking-cancellation-prediction</a></div>
+        <div style="margin-top:6px;">Last updated: <span id="last-updated">2026-01-29</span></div>
+      </div>
+    </header>
+
+    <!-- Grid -->
+    <div class="grid">
+      <!-- Main column -->
+      <main>
+        <!-- Top summary card -->
+        <section class="card" aria-labelledby="overview-title">
+          <h2 id="overview-title">Project Overview</h2>
+          <p class="muted">This project predicts whether a hotel booking will be cancelled (target = <code>booking_status</code>, where 1 = Cancelled, 0 = Not Cancelled). The notebook used for this page performed data cleaning, advanced feature engineering, and model stacking to reach a final ensemble AUC.</p>
+
+          <div class="metrics" style="margin-top:12px;">
+            <!-- The numbers below are prefilled from the notebook analysis; update if your model differs -->
+            <div class="metric" id="metric-stacked">Stacked AUC<br><span style="font-size:16px" id="stacked-val">0.94981</span></div>
+            <div class="metric">Features<br><span style="font-size:16px" id="features-val">65</span></div>
+            <div class="metric">Optimal Threshold<br><span style="font-size:16px" id="thresh-val">0.4605</span></div>
+            <div class="metric">Top Model AUC<br><span style="font-size:16px" id="top-auc">0.94404</span></div>
+          </div>
+
+          <div style="margin-top:14px;" class="note">
+            <strong>Quick interpretation:</strong> Stacking of multiple base learners improved performance compared to individual base models (see Model Comparison chart below). The notebook created <strong id="features-created">65</strong> derived features. If you want me to regenerate the visuals from raw CSVs, upload `train.csv` and `test.csv` to the repository and I can produce ROC, confusion matrix, and feature importance PNGs.
+          </div>
+        </section>
+
+        <!-- Dataset and features -->
+        <section class="card" aria-labelledby="dataset-title" style="margin-top:16px;">
+          <h2 id="dataset-title">Dataset & Key Features</h2>
+          <p class="muted">Files included with the Kaggle competition:</p>
+          <ul class="clean">
+            <li><code>train.csv</code> — training records with the target column (<code>booking_status</code>).</li>
+            <li><code>test.csv</code> — test records (target hidden).</li>
+            <li><code>sample_submission.csv</code> — sample submission format.</li>
+          </ul>
+
+          <h3 style="margin-top:12px; font-size:15px;">Columns (selected)</h3>
+          <ul class="clean" style="margin-top:8px;">
+            <li><strong>adults</strong>, <strong>children</strong> — number of guests</li>
+            <li><strong>weekends</strong>, <strong>weekdays</strong> — nights split by weekend/weekday</li>
+            <li><strong>meal_type</strong>, <strong>room_type</strong>, <strong>segment</strong> — categorical booking details</li>
+            <li><strong>arrival</strong> — arrival date (converted to year/month/day features)</li>
+            <li><strong>lead_time</strong> — days between booking and arrival</li>
+            <li><strong>repeat</strong> — whether customer has booked previously</li>
+            <li><strong>price</strong> — average room price</li>
+            <li><strong>requests</strong> — number of special requests</li>
+          </ul>
+
+          <h3 style="margin-top:12px; font-size:15px;">Preprocessing applied</h3>
+          <ul class="clean">
+            <li>Missing value handling (imputation or fill for categorical "Not Selected").</li>
+            <li>Arrival date split into <code>arrival_year</code>, <code>arrival_month</code>, <code>arrival_day</code>.</li>
+            <li>Categorical encoding: LabelEncoder and OneHotEncoder as appropriate.</li>
+            <li>Feature scaling where necessary for models that require it.</li>
+          </ul>
+        </section>
+
+        <!-- Feature Engineering -->
+        <section class="card" style="margin-top:16px;">
+          <h2>Feature Engineering (selected)</h2>
+          <p class="muted">Examples of derived features that improved signal:</p>
+          <ul class="clean">
+            <li><code>total_people = adults + children</code></li>
+            <li><code>stay_length = weekends + weekdays</code></li>
+            <li><code>price_per_person = price / max(1, total_people)</code></li>
+            <li><code>lead_time_bucket</code> — short/medium/long lead time bins</li>
+            <li>One-hot encoded meal and room types (sparse matrix)</li>
+          </ul>
+
+          <div style="margin-top:12px;">
+            <strong>Advanced engineering note:</strong> The notebook created <strong id="feat-count-2">65</strong> features including interactions and binned variables.
+          </div>
+
+        </section>
+
+        <!-- Visuals -->
+        <section class="card" style="margin-top:16px;">
+          <h2>Interactive Visualizations</h2>
+          <p class="muted">Below are interactive charts rendered using Chart.js. They use prefilled numbers from your notebook; replace values in the script section if you regenerate metrics.</p>
+
+          <div class="visuals" style="margin-top:12px;">
+            <!-- Model AUCs bar chart -->
+            <div class="chart-wrap card" aria-label="Model AUCs">
+              <h3 style="margin-top:0;margin-bottom:8px;font-size:15px;">Model AUC Comparison</h3>
+              <canvas id="aucsChart" width="400" height="260" aria-label="Model AUC comparison bar chart"></canvas>
+              <p class="muted" style="margin-top:8px;">Bars show AUC for base models and stacked ensemble.</p>
+            </div>
+
+            <!-- ROC-like line chart (simulated for presentation) -->
+            <div class="chart-wrap card" aria-label="ROC curve">
+              <h3 style="margin-top:0;margin-bottom:8px;font-size:15px;">ROC Curve (illustrative)</h3>
+              <canvas id="rocChart" width="400" height="260" aria-label="ROC curve visualization"></canvas>
+              <p class="muted" style="margin-top:8px;">This ROC is illustrative. For an exact ROC, generate the curve from model probabilities using sklearn.metrics.roc_curve.</p>
+            </div>
+
+            <!-- Feature Importance chart -->
+            <div class="chart-wrap card" aria-label="Feature importance">
+              <h3 style="margin-top:0;margin-bottom:8px;font-size:15px;">Feature Importance (top 8)</h3>
+              <canvas id="fiChart" width="400" height="260" aria-label="Feature importance bar chart"></canvas>
+              <p class="muted" style="margin-top:8px;">Replace the sample importance values below with your model's computed importances.</p>
+            </div>
+
+            <!-- Confusion matrix -->
+            <div class="chart-wrap card" aria-label="Confusion matrix">
+              <h3 style="margin-top:0;margin-bottom:8px;font-size:15px;">Confusion Matrix (sample)</h3>
+              <canvas id="cmChart" width="400" height="260" aria-label="Confusion matrix heatmap"></canvas>
+              <p class="muted" style="margin-top:8px;">Confusion matrix allows you to inspect false positives and false negatives at the chosen threshold (<span id="thr-display">0.4605</span>).</p>
+            </div>
+          </div>
+
+          <!-- Chart export and small controls -->
+          <div style="margin-top:10px; display:flex; gap:10px; align-items:center;">
+            <button class="btn" onclick="downloadCharts()">Download Charts (PNG)</button>
+            <button class="btn secondary" onclick="resetCharts()">Reset sample data</button>
+            <div class="right muted" style="margin-left:auto;">Tip: hover charts to read values</div>
+          </div>
+        </section>
+
+        <!-- Predictions sample -->
+        <section class="card" style="margin-top:16px;">
+          <h2>Sample Predictions</h2>
+          <p class="muted">Below is a small sample of predicted probabilities and final labels (using threshold shown above). Replace this with your real `submission.csv` or generated sample.</p>
+          <table aria-label="sample predictions">
+            <thead>
+              <tr>
+                <th>id</th>
+                <th>predicted_probability</th>
+                <th>predicted_status (threshold 0.4605)</th>
+              </tr>
+            </thead>
+            <tbody id="pred-table">
+              <!-- Rows will be injected by JavaScript -->
+            </tbody>
+          </table>
+
+          <div style="margin-top:10px; display:flex; gap:8px;">
+            <button class="btn" onclick="downloadSubmission()">Download submission.csv</button>
+            <button class="btn secondary" onclick="openGitHub()">Open repository</button>
+          </div>
+        </section>
+
+        <!-- How to run -->
+        <section class="card" style="margin-top:16px;">
+          <h2>How to reproduce</h2>
+          <p class="muted">Steps to run the notebook and reproduce the results locally or on Kaggle:</p>
+          <ol class="clean">
+            <li>Clone the repository: <code class="mono">git clone https://github.com/YOUR_USERNAME/hotel-booking-cancellation-prediction.git</code></li>
+            <li>Install dependencies: <code class="mono">pip install -r requirements.txt</code></li>
+            <li>Open the notebook: <code class="mono">jupyter notebook hotel_booking_model.ipynb</code> or run the script <code class="mono">python src/train_model.py</code></li>
+            <li>After training, generate the submission file and PNG plots: <code class="mono">python src/predict.py --output submission.csv</code></li>
+            <li>Place PNGs into <code>images/</code> and push to GitHub to update this page.</li>
+          </ol>
+
+          <div style="margin-top:10px;" class="note">
+            If your notebook reads from a Kaggle dataset path (e.g., <code>/kaggle/input/...</code>), download the CSVs and place them under a top-level <code>data/</code> folder before running locally.
+          </div>
+        </section>
+
+      </main>
+
+      <!-- Sidebar -->
+      <aside>
+        <div class="card" aria-labelledby="model-title">
+          <h2 id="model-title">Models & Pipeline</h2>
+          <p class="muted">Base and ensemble models used in the notebook:</p>
+          <ul class="clean">
+            <li>Logistic Regression — baseline</li>
+            <li>Decision Tree — baseline</li>
+            <li>Random Forest — strong performer</li>
+            <li>XGBoost / LightGBM — gradient boosting (fast & accurate)</li>
+            <li>Stacking / Blending ensemble — final stacked AUC reported</li>
+          </ul>
+
+          <div style="margin-top:12px;">
+            <strong>Important metrics</strong>
+            <ul class="clean" style="margin-top:8px;">
+              <li>Stacked AUC: <strong id="stacked-side">0.94981</strong></li>
+              <li>Optimal threshold: <strong id="thresh-side">0.4605</strong></li>
+              <li>Feature count: <strong id="feat-side">65</strong></li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="card" style="margin-top:12px;" aria-labelledby="insights-title">
+          <h2 id="insights-title">Key Insights</h2>
+          <ul class="clean">
+            <li>Lead time and number of special requests show a strong correlation with cancellations.</li>
+            <li>Ensemble stacking yielded a small but meaningful uplift in AUC over best base models.</li>
+            <li>Binning lead time into categories improved stability across cross-validation folds.</li>
+            <li>Price per person and stay length are useful numerical predictors.</li>
+          </ul>
+        </div>
+
+        <div class="card" style="margin-top:12px;" aria-labelledby="files-title">
+          <h2 id="files-title">Repo Files (recommended)</h2>
+          <ul class="clean">
+            <li><code>notebook/hotel_booking_model.ipynb</code></li>
+            <li><code>src/preprocess.py</code></li>
+            <li><code>src/train_model.py</code></li>
+            <li><code>src/predict.py</code></li>
+            <li><code>data/train.csv</code>, <code>data/test.csv</code></li>
+            <li><code>images/roc_curve.png</code>, <code>images/confusion_matrix.png</code></li>
+          </ul>
+        </div>
+
+        <div class="card" style="margin-top:12px;">
+          <h2>Contact</h2>
+          <p class="muted">Udghosh Rao — Data Science Student</p>
+          <p class="muted">Email: <span class="mono">24f2000612@ds.study.iitm.ac.in</span></p>
+          <p class="muted">GitHub: <a href="https://github.com/YOUR_USERNAME" target="_blank">github.com/YOUR_USERNAME</a></p>
+        </div>
+
+      </aside>
+    </div>
+
+    <footer>
+      <div class="muted">© 2026 Udghosh Rao — Hotel Booking Cancellation Prediction. Built for presentation and portfolio use.</div>
+    </footer>
+  </div>
+
+  <!-- ---------------------------
+       Script section
+       --------------------------- -->
+  <script>
+    /***************************************************************************
+     * This script drives the interactive charts and the sample prediction table.
+     * Replace values in the data arrays with your real numbers or dynamically
+     * inject them via server-side templating or simple string replacement.
+     *
+     * Key variables you may want to update:
+     * - baseModelNames, baseModelAucs
+     * - stackedAuc
+     * - featureImportanceLabels, featureImportanceValues
+     * - confusionMatrixData (TP, FP, FN, TN) or derived counts
+     ***************************************************************************/
+
+    // ---- Prefilled metrics from notebook analysis (update these as needed) ----
+    const stackedAuc = 0.94981;
+    const optimalThreshold = 0.4605;
+    const featuresCreated = 65;
+
+    // Sample base model names and AUCs reported in your notebook (ordered)
+    const baseModelNames = [
+      "Logistic Reg", "Random Forest", "XGBoost", "LightGBM",
+      "Decision Tree", "KNN", "Extra Trees"
+    ];
+    const baseModelAucs = [
+      0.94170, 0.94404, 0.93881, 0.94271, 0.85906, 0.85357, 0.88894
+    ];
+
+    // Sample feature importance (top 8) — replace with your model's values
+    const featureImportanceLabels = [
+      "lead_time", "requests", "price_per_person", "stay_length",
+      "segment_Online", "room_type_1", "meal_type_1", "repeat"
+    ];
+    const featureImportanceValues = [0.18, 0.14, 0.12, 0.10, 0.09, 0.08, 0.07, 0.06];
+
+    // Confusion matrix sample (for threshold demonstration)
+    // Order: [TP, FP, FN, TN] — replace counts with real confusion matrix values
+    const confusionMatrixData = {
+      TP: 520,
+      FP: 85,
+      FN: 44,
+      TN: 740
+    };
+
+    // ---- DOM initial updates ----
+    document.getElementById('stacked-val').innerText = stackedAuc.toFixed(5);
+    document.getElementById('stacked-side').innerText = stackedAuc.toFixed(5);
+    document.getElementById('thresh-val').innerText = optimalThreshold;
+    document.getElementById('thresh-side').innerText = optimalThreshold;
+    document.getElementById('thr-display').innerText = optimalThreshold;
+    document.getElementById('features-val').innerText = featuresCreated;
+    document.getElementById('feat-side').innerText = featuresCreated;
+    document.getElementById('features-created').innerText = featuresCreated;
+    document.getElementById('feat-count-2').innerText = featuresCreated;
+
+    // ---- Chart: Model AUCs (bar) ----
+    const aucsCtx = document.getElementById('aucsChart').getContext('2d');
+    const aucsChart = new Chart(aucsCtx, {
+      type: 'bar',
+      data: {
+        labels: baseModelNames.concat(['Stacked Ensemble']),
+        datasets: [{
+          label: 'AUC',
+          data: baseModelAucs.concat([stackedAuc]),
+          borderRadius: 6,
+          barThickness: 18,
+          backgroundColor: function(context) {
+            const idx = context.dataIndex;
+            // Highlight stacked model
+            if (idx === baseModelAucs.length) return 'rgba(99,102,241,0.95)';
+            return 'rgba(96,165,250,0.95)';
+          }
+        }]
+      },
+      options: {
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            callbacks: {
+              label: function(ctx) { return 'AUC: ' + ctx.parsed.y.toFixed(5); }
+            }
+          }
+        },
+        scales: {
+          y: {
+            beginAtZero: false,
+            min: 0.75,
+            max: 1.0
+          }
+        },
+        responsive: true,
+        maintainAspectRatio: false
+      }
+    });
+
+    // ---- Chart: ROC (illustrative) ----
+    // We simulate a smooth ROC curve using a monotonic increasing curve that approximates an AUC.
+    function makeRocPoints(auc, steps=50){
+      // produce FPR increasing from 0 to 1 and TPR such that area approximates auc
+      const points = [];
+      for(let i=0;i<=steps;i++){
+        const fpr = i/steps;
+        // create tpr slightly above fpr for higher auc; tuned function
+        const tpr = Math.min(1, Math.pow(fpr, 0.6) * (0.2 + auc));
+        points.push({fpr, tpr});
+      }
+      // ensure start and end are exact
+      points[0].tpr = 0;
+      points[steps].tpr = 1;
+      return points;
+    }
+
+    const rocPts = makeRocPoints(stackedAuc, 80);
+    const rocCtx = document.getElementById('rocChart').getContext('2d');
+    const rocChart = new Chart(rocCtx, {
+      type: 'line',
+      data: {
+        labels: rocPts.map(p => p.fpr.toFixed(2)),
+        datasets: [{
+          label: `Stacked AUC ~ ${stackedAuc.toFixed(5)}`,
+          data: rocPts.map(p => p.tpr),
+          fill: true,
+          tension: 0.3,
+          borderColor: 'rgba(99,102,241,0.95)',
+          backgroundColor: 'rgba(99,102,241,0.12)',
+          pointRadius: 0
+        },{
+          label: 'Random baseline',
+          data: rocPts.map(p => p.fpr),
+          borderDash: [6,4],
+          borderColor: 'rgba(148,163,184,0.6)',
+          pointRadius: 0
+        }]
+      },
+      options: {
+        plugins: { legend:{ display:true } },
+        scales: {
+          x: { title: { display:true, text:'False Positive Rate (FPR)' } },
+          y: { title: { display:true, text:'True Positive Rate (TPR)' }, min:0, max:1 }
+        },
+        maintainAspectRatio:false
+      }
+    });
+
+    // ---- Chart: Feature Importance (horizontal bar) ----
+    const fiCtx = document.getElementById('fiChart').getContext('2d');
+    const fiChart = new Chart(fiCtx, {
+      type: 'bar',
+      data: {
+        labels: featureImportanceLabels,
+        datasets: [{
+          label: 'Importance',
+          data: featureImportanceValues,
+          backgroundColor: featureImportanceValues.map(v => `rgba(${Math.floor(50+v*120)}, ${130}, ${220 - v*80}, 0.9)`),
+          borderRadius: 6,
+          barThickness: 14
+        }]
+      },
+      options: {
+        indexAxis: 'y',
+        plugins: { legend: { display: false } },
+        scales: {
+          x: { min: 0 },
+        },
+        maintainAspectRatio:false
+      }
+    });
+
+    // ---- Chart: Confusion Matrix (heatmap-like using bar stacked) ----
+    // We'll display normalized values (%) and counts in tooltip
+    const cmCtx = document.getElementById('cmChart').getContext('2d');
+    const cmLabels = ['Predicted Positive', 'Predicted Negative'];
+    const cmCounts = [confusionMatrixData.TP, confusionMatrixData.FP, confusionMatrixData.FN, confusionMatrixData.TN];
+    // Convert to matrix form for display: rows are Actual Positive/Actual Negative
+    const cmMatrix = [
+      [confusionMatrixData.TP, confusionMatrixData.FN], // Actual Positive: TP (Pred Pos), FN (Pred Neg)
+      [confusionMatrixData.FP, confusionMatrixData.TN]  // Actual Negative: FP (Pred Pos), TN (Pred Neg)
+    ];
+    const cmDataset = {
+      labels: ['Actual Positive', 'Actual Negative'],
+      datasets: [
+        {
+          label: 'Predicted Positive',
+          data: [cmMatrix[0][0], cmMatrix[1][0]],
+          backgroundColor: 'rgba(99,102,241,0.95)',
+        },
+        {
+          label: 'Predicted Negative',
+          data: [cmMatrix[0][1], cmMatrix[1][1]],
+          backgroundColor: 'rgba(148,163,184,0.3)',
+        }
+      ]
+    };
+    const cmChart = new Chart(cmCtx, {
+      type: 'bar',
+      data: cmDataset,
+      options: {
+        plugins: {
+          legend: { position:'bottom' },
+          tooltip: {
+            callbacks: {
+              label: function(ctx){
+                const label = ctx.dataset.label || '';
+                const val = ctx.parsed.y;
+                return `${label}: ${val}`;
+              }
+            }
+          }
+        },
+        scales: {
+          x: { stacked: true },
+          y: { stacked: true }
+        },
+        maintainAspectRatio:false
+      }
+    });
+
+    // ---- Sample predictions table (toy data) ----
+    const samplePredictions = [
+      {id: 1001, prob: 0.12}, {id: 1002, prob: 0.87}, {id: 1003, prob: 0.48},
+      {id: 1004, prob: 0.33}, {id: 1005, prob: 0.61}, {id: 1006, prob: 0.04}
+    ];
+    function renderPredictionTable(){
+      const tbody = document.getElementById('pred-table');
+      tbody.innerHTML = '';
+      samplePredictions.forEach(r => {
+        const label = (r.prob >= optimalThreshold) ? 1 : 0;
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td class="mono">${r.id}</td>
+                        <td>${r.prob.toFixed(3)}</td>
+                        <td>${label}</td>`;
+        tbody.appendChild(tr);
+      });
+    }
+    renderPredictionTable();
+
+    // ---- Utility functions: download, reset, openGitHub ----
+    function downloadSubmission(){
+      // Generate CSV from samplePredictions (id,booking_status)
+      const header = 'id,booking_status\\n';
+      const rows = samplePredictions.map(r => `${r.id},${(r.prob >= optimalThreshold) ? 1 : 0}`).join('\\n');
+      const csv = header + rows;
+      const blob = new Blob([csv], { type: 'text/csv' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'submission.csv';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    }
+
+    function openGitHub(){
+      window.open('https://github.com/YOUR_USERNAME/hotel-booking-cancellation-prediction','_blank');
+    }
+
+    function resetCharts(){
+      // Reset to initial sample data (this demo uses constant arrays)
+      aucsChart.data.datasets[0].data = baseModelAucs.concat([stackedAuc]);
+      aucsChart.update();
+      fiChart.data.datasets[0].data = featureImportanceValues;
+      fiChart.update();
+      cmChart.data.datasets[0].data = [cmMatrix[0][0], cmMatrix[1][0]];
+      cmChart.data.datasets[1].data = [cmMatrix[0][1], cmMatrix[1][1]];
+      cmChart.update();
+      rocChart.data.datasets[0].data = rocPts.map(p => p.tpr);
+      rocChart.update();
+    }
+
+    async function downloadCharts(){
+      // Download each chart as PNG sequentially
+      // Chart.js chart.toBase64Image() works for chart instances
+      const charts = [aucsChart, rocChart, fiChart, cmChart];
+      for(let i=0;i<charts.length;i++){
+        const ch = charts[i];
+        const url = ch.toBase64Image();
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `chart-${i+1}.png`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        // small pause for UX
+        await new Promise(r => setTimeout(r,120));
+      }
+    }
+
+    // Expose functions on window for console usage
+    window.downloadCharts = downloadCharts;
+    window.resetCharts = resetCharts;
+    window.downloadSubmission = downloadSubmission;
+    window.openGitHub = openGitHub;
+
+    // ---- Accessibility: keyboard shortcut to download charts (D key) ----
+    document.addEventListener('keydown', function(e){
+      if(e.key === 'd' || e.key === 'D'){
+        downloadCharts();
+      }
+    });
+
+  </script>
+</body>
+</html>
